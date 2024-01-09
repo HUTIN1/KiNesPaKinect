@@ -137,10 +137,11 @@ def main():
                 brect = calc_bounding_rect(debug_image, hand_landmarks)
                 # ランドマークの計算
                 landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+                pre_processed_landmark_list = calc_landmark_list(debug_image, normalize_landmark(hand_landmarks))
 
                 # 相対座標・正規化座標への変換
                 pre_processed_landmark_list = pre_process_landmark(
-                    landmark_list)
+                    pre_processed_landmark_list)
                 pre_processed_point_history_list = pre_process_point_history(
                     debug_image, point_history)
                 # 学習データ保存
@@ -184,9 +185,11 @@ def main():
                 else:
                     l = 1
 
-                hand_landmarks_0 = normalize_landmark(results.multi_hand_landmarks[l])
-                hand_landmarks_1 = normalize_landmark(results.multi_hand_landmarks[1-l])
+                hand_landmarks_0 = results.multi_hand_landmarks[l]
+                hand_landmarks_1 = results.multi_hand_landmarks[1-l]
                 
+                hand_landmarks_0, hand_landmarks_1 = normalize_two_landmark(hand_landmarks_0, hand_landmarks_1)
+
                 handedness_0 = results.multi_handedness[l]
                 handedness_1 = results.multi_handedness[1-l]
 
@@ -200,7 +203,6 @@ def main():
 
                 
                 two_hands_hand_sign_id = two_hands_keypoint_classifier(pre_processed_landmark_list)
-                print(two_hands_hand_sign_id)
 
         else:
             point_history.append([0, 0])
@@ -258,13 +260,16 @@ def landmark_distance(landmark, ind_1, ind_2):
 
 def normalize_landmark(landmarks):
 
-    #Calcul distance base paume/bout index
+    #Calcul distance base paume/bout majeur
     d = landmark_distance(landmarks.landmark, 0, 9) + landmark_distance(landmarks.landmark, 9, 10) + landmark_distance(landmarks.landmark, 10, 11) + landmark_distance(landmarks.landmark, 11, 12)
 
-    for _, landmark in enumerate(landmarks.landmark):
-        landmark.x /= d
-        landmark.y /= d
-        landmark.z /= d
+    for index, landmark in enumerate(landmarks.landmark):
+        if index == 0:
+            base_x = landmark.x
+            base_y = landmark.y
+        landmark.x = (landmark.x-base_x)/d
+        landmark.y = (landmark.y-base_y)/d
+        #landmark.z = 
 
     return landmarks
 
@@ -309,14 +314,34 @@ def pre_process_landmark(landmark_list):
 
     return temp_landmark_list
 
+def normalize_two_landmark(landmarks_0, landmarks_1):
+
+    #Calcul distance base paume/bout majeur
+    d = landmark_distance(landmarks_0.landmark, 0, 9) + landmark_distance(landmarks_0.landmark, 9, 10) + landmark_distance(landmarks_0.landmark, 10, 11) + landmark_distance(landmarks_0.landmark, 11, 12)
+
+    for index, landmark in enumerate(landmarks_0.landmark):
+        if index == 0:
+            base_x = landmark.x
+            base_y = landmark.y
+        landmark.x = (landmark.x-base_x)/d
+        landmark.y = (landmark.y-base_y)/d
+        #landmark.z = 
+
+    for _, landmark in enumerate(landmarks_1.landmark):
+
+        landmark.x = (landmark.x-base_x)/d
+        landmark.y = (landmark.y-base_y)/d
+        #landmark.z = 
+
+    return landmarks_0, landmarks_1
+
 def pre_process_two_hands_landmark(landmark_list_0, landmark_list_1):
-    temp_landmark_list_0 = pre_process_landmark(landmark_list_0)
+    temp_landmark_list_0 = pre_process_landmark((landmark_list_0))
     temp_landmark_list_1 = copy.deepcopy(landmark_list_1)
 
 
-    # 相対座標に変換
     base_x, base_y = temp_landmark_list_1[0][0], temp_landmark_list_1[0][1]
-    temp_landmark_list_1 = pre_process_landmark(landmark_list_1)
+    temp_landmark_list_1 = pre_process_landmark((landmark_list_1))
 
 
     for index in range(len(temp_landmark_list_1)//2):
