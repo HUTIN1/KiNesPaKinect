@@ -14,6 +14,7 @@ import mediapipe as mp
 from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
+from model import TwoHandsKeyPointClassifier
 
 
 def get_args():
@@ -61,13 +62,13 @@ def main():
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(
         static_image_mode=use_static_image_mode,
-        max_num_hands=1,
+        max_num_hands=2,
         min_detection_confidence=min_detection_confidence,
         min_tracking_confidence=min_tracking_confidence,
     )
 
     keypoint_classifier = KeyPointClassifier()
-
+    two_hands_keypoint_classifier = TwoHandsKeyPointClassifier()
     point_history_classifier = PointHistoryClassifier()
 
     # ラベル読み込み ###########################################################
@@ -83,6 +84,12 @@ def main():
         point_history_classifier_labels = csv.reader(f)
         point_history_classifier_labels = [
             row[0] for row in point_history_classifier_labels
+        ]
+    with open('model/two_hands_keypoint_classifier/two_hands_keypoint_classifier_label.csv',
+              encoding='utf-8-sig') as f:
+        two_hands_keypoint_classifier_labels = csv.reader(f)
+        two_hands_keypoint_classifier_labels = [
+            row[0] for row in two_hands_keypoint_classifier_labels
         ]
 
     # FPS計測モジュール ########################################################
@@ -122,6 +129,7 @@ def main():
         image.flags.writeable = True
 
         #  ####################################################################
+        two_hands_hand_sign_id = -1 
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
                                                   results.multi_handedness):
@@ -168,11 +176,40 @@ def main():
                     keypoint_classifier_labels[hand_sign_id],
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
+            if len(results.multi_hand_landmarks)==2:
+                
+
+                if results.multi_handedness[0].classification[0].label[0:] == "Left":
+                    l = 0
+                else:
+                    l = 1
+
+                hand_landmarks_0 = normalize_landmark(results.multi_hand_landmarks[l])
+                hand_landmarks_1 = normalize_landmark(results.multi_hand_landmarks[1-l])
+                
+                handedness_0 = results.multi_handedness[l]
+                handedness_1 = results.multi_handedness[1-l]
+
+                landmark_list_0 = calc_landmark_list(debug_image, hand_landmarks_0)
+                landmark_list_1 = calc_landmark_list(debug_image, hand_landmarks_1)
+
+                
+                pre_processed_landmark_list = pre_process_two_hands_landmark(landmark_list_0, landmark_list_1)
+
+                logging_csv_two_hands(number, mode, pre_processed_landmark_list)
+
+                
+                two_hands_hand_sign_id = two_hands_keypoint_classifier(pre_processed_landmark_list)
+                print(two_hands_hand_sign_id)
+
         else:
             point_history.append([0, 0])
 
         debug_image = draw_point_history(debug_image, point_history)
-        debug_image = draw_info(debug_image, fps, mode, number)
+        if two_hands_hand_sign_id != -1:
+            debug_image = draw_info(debug_image, fps, mode, number, two_hands_keypoint_classifier_labels[two_hands_hand_sign_id])
+        else:
+            debug_image = draw_info(debug_image, fps, mode, number)
 
         # 画面反映 #############################################################
         cv.imshow('Hand Gesture Recognition', debug_image)
@@ -191,6 +228,8 @@ def select_mode(key, mode):
         mode = 1
     if key == 104:  # h
         mode = 2
+    if key == 116:  # t
+        mode = 3 
     return number, mode
 
 
@@ -211,6 +250,23 @@ def calc_bounding_rect(image, landmarks):
 
     return [x, y, x + w, y + h]
 
+def landmark_distance(landmark, ind_1, ind_2):
+    return np.sqrt((landmark[ind_1].x
+    -landmark[ind_2].x)**2 + (landmark[ind_1].y
+    -landmark[ind_2].y)**2 + (landmark[ind_1].z
+    -landmark[ind_2].z)**2)
+
+def normalize_landmark(landmarks):
+
+    #Calcul distance base paume/bout index
+    d = landmark_distance(landmarks.landmark, 0, 9) + landmark_distance(landmarks.landmark, 9, 10) + landmark_distance(landmarks.landmark, 10, 11) + landmark_distance(landmarks.landmark, 11, 12)
+
+    for _, landmark in enumerate(landmarks.landmark):
+        landmark.x /= d
+        landmark.y /= d
+        landmark.z /= d
+
+    return landmarks
 
 def calc_landmark_list(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
@@ -236,7 +292,6 @@ def pre_process_landmark(landmark_list):
     for index, landmark_point in enumerate(temp_landmark_list):
         if index == 0:
             base_x, base_y = landmark_point[0], landmark_point[1]
-
         temp_landmark_list[index][0] = temp_landmark_list[index][0] - base_x
         temp_landmark_list[index][1] = temp_landmark_list[index][1] - base_y
 
@@ -250,10 +305,28 @@ def pre_process_landmark(landmark_list):
     def normalize_(n):
         return n / max_value
 
-    temp_landmark_list = list(map(normalize_, temp_landmark_list))
+    #temp_landmark_list = list(map(normalize_, temp_landmark_list))
 
     return temp_landmark_list
 
+def pre_process_two_hands_landmark(landmark_list_0, landmark_list_1):
+    temp_landmark_list_0 = pre_process_landmark(landmark_list_0)
+    temp_landmark_list_1 = copy.deepcopy(landmark_list_1)
+
+
+    # 相対座標に変換
+    base_x, base_y = temp_landmark_list_1[0][0], temp_landmark_list_1[0][1]
+    temp_landmark_list_1 = pre_process_landmark(landmark_list_1)
+
+
+    for index in range(len(temp_landmark_list_1)//2):
+
+        temp_landmark_list_1[2*index] = temp_landmark_list_1[2*index] + base_x
+        temp_landmark_list_1[2*index+1] = temp_landmark_list_1[2*index+1] + base_y
+
+    temp_landmark_list_0 += temp_landmark_list_1
+    
+    return temp_landmark_list_0
 
 def pre_process_point_history(image, point_history):
     image_width, image_height = image.shape[1], image.shape[0]
@@ -293,6 +366,15 @@ def logging_csv(number, mode, landmark_list, point_history_list):
             writer.writerow([number, *point_history_list])
     return
 
+def logging_csv_two_hands(number, mode, landmark_list):
+    if mode == 0:
+        pass
+    if mode == 3 and (0 <= number <= 9):
+        csv_path = 'model/two_hands_keypoint_classifier/two_hands_keypoint.csv'
+        with open(csv_path, 'a', newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([number, *landmark_list])
+    return
 
 def draw_landmarks(image, landmark_point):
     # 接続線
@@ -522,14 +604,20 @@ def draw_point_history(image, point_history):
     return image
 
 
-def draw_info(image, fps, mode, number):
+def draw_info(image, fps, mode, number, two_hands_hand_sign_text=""):
     cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
                1.0, (0, 0, 0), 4, cv.LINE_AA)
     cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
                1.0, (255, 255, 255), 2, cv.LINE_AA)
 
-    mode_string = ['Logging Key Point', 'Logging Point History']
-    if 1 <= mode <= 2:
+    if two_hands_hand_sign_text != "":
+        cv.putText(image, "Hands sign:" + two_hands_hand_sign_text, (10, 120), cv.FONT_HERSHEY_SIMPLEX,
+               1.0, (0, 0, 0), 4, cv.LINE_AA)
+        cv.putText(image, "Hands sign:" + two_hands_hand_sign_text, (10, 120), cv.FONT_HERSHEY_SIMPLEX,
+               1.0, (255, 255, 255), 2, cv.LINE_AA)
+        
+    mode_string = ['Logging Key Point', 'Logging Point History', 'Logging Two Hands Key Point']
+    if 1 <= mode <= 3:
         cv.putText(image, "MODE:" + mode_string[mode - 1], (10, 90),
                    cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1,
                    cv.LINE_AA)
