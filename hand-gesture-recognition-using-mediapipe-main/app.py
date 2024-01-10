@@ -28,7 +28,7 @@ def get_args():
     parser.add_argument("--min_detection_confidence",
                         help='min_detection_confidence',
                         type=float,
-                        default=0.7)
+                        default=0.85)
     parser.add_argument("--min_tracking_confidence",
                         help='min_tracking_confidence',
                         type=int,
@@ -197,7 +197,9 @@ def main():
                 landmark_list_1 = calc_landmark_list(debug_image, hand_landmarks_1)
 
                 
-                pre_processed_landmark_list = pre_process_two_hands_landmark(landmark_list_0, landmark_list_1)
+                #pre_processed_landmark_list = pre_process_two_hands_landmark(landmark_list_0, landmark_list_1)
+                pre_processed_landmark_list = pre_process_landmark(landmark_list_0+landmark_list_1)
+
 
                 logging_csv_two_hands(number, mode, pre_processed_landmark_list)
 
@@ -310,7 +312,7 @@ def pre_process_landmark(landmark_list):
     def normalize_(n):
         return n / max_value
 
-    #temp_landmark_list = list(map(normalize_, temp_landmark_list))
+    temp_landmark_list = list(map(normalize_, temp_landmark_list))
 
     return temp_landmark_list
 
@@ -381,9 +383,11 @@ def logging_csv(number, mode, landmark_list, point_history_list):
         pass
     if mode == 1 and (0 <= number <= 9):
         csv_path = 'model/keypoint_classifier/keypoint.csv'
+        landmark_list_mirror = [(-1)**(k+1) * landmark_list[k] for k in range(len(landmark_list))]
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
+            writer.writerow([number, *landmark_list_mirror])
     if mode == 2 and (0 <= number <= 9):
         csv_path = 'model/point_history_classifier/point_history.csv'
         with open(csv_path, 'a', newline="") as f:
