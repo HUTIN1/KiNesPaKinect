@@ -6,6 +6,7 @@ import argparse
 import itertools
 from collections import Counter
 from collections import deque
+import time
 
 import cv2 as cv
 import numpy as np
@@ -28,7 +29,7 @@ def get_args():
     parser.add_argument("--min_detection_confidence",
                         help='min_detection_confidence',
                         type=float,
-                        default=0.85)
+                        default=0.7)
     parser.add_argument("--min_tracking_confidence",
                         help='min_tracking_confidence',
                         type=int,
@@ -98,12 +99,16 @@ def main():
     # 座標履歴 #################################################################
     history_length = 16
     point_history = deque(maxlen=history_length)
+    hands_sign_history = deque(maxlen=history_length)
+    previous_hands_sign = 0
 
     # フィンガージェスチャー履歴 ################################################
     finger_gesture_history = deque(maxlen=history_length)
 
     #  ########################################################################
     mode = 0
+    mode_game = 0
+    timer_combo = 0
 
     while True:
         fps = cvFpsCalc.get()
@@ -150,6 +155,10 @@ def main():
 
                 # ハンドサイン分類
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                if hand_sign_id == 0:
+                    angle = np.arccos((landmark_list[8][0]-landmark_list[0][0]) / np.sqrt((landmark_list[0][0]-landmark_list[8][0])**2 + (landmark_list[0][1]-landmark_list[8][1])**2))
+                    
+                    #print(np.round(90 - 180*angle/np.pi))
                 if hand_sign_id == 2:  # 指差しサイン
                     point_history.append(landmark_list[8])  # 人差指座標
                 else:
@@ -205,6 +214,25 @@ def main():
 
                 
                 two_hands_hand_sign_id = two_hands_keypoint_classifier(pre_processed_landmark_list)
+
+                hands_sign_history.append(two_hands_hand_sign_id)
+                most_common_hd_id = Counter(hands_sign_history).most_common()
+                if most_common_hd_id[0][0] != 0 and most_common_hd_id[0][0] != previous_hands_sign:
+
+                    previous_hands_sign = most_common_hd_id[0][0]
+                    
+                    if mode_game == 0:
+
+                        if two_hands_keypoint_classifier_labels[most_common_hd_id[0][0]] == "Hajime":
+                            print("Debut du combo")
+                            mode_game = 1
+                            timer_combo = time.time() + 5
+                    
+                    print(two_hands_keypoint_classifier_labels[most_common_hd_id[0][0]])
+
+                if mode_game == 1 and timer_combo - time.time()  <= 0:
+                    print("Fin du combo")
+                    mode_game = 0
 
         else:
             point_history.append([0, 0])
