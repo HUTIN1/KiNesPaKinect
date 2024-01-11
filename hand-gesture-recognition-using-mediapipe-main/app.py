@@ -155,9 +155,9 @@ def main():
 
                 # ハンドサイン分類
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                if hand_sign_id == 0: #Calcul angle de la main si main ouverte
+                if hand_sign_id == 0 and mode_game == 0: #Calcul angle de la main si main ouverte
                     angle = np.arccos((landmark_list[8][0]-landmark_list[0][0]) / np.sqrt((landmark_list[0][0]-landmark_list[8][0])**2 + (landmark_list[0][1]-landmark_list[8][1])**2))
-                    #print(np.round(90 - 180*angle/np.pi))
+                    print(np.round(90 - 180*angle/np.pi))
 
                 if hand_sign_id == 2:  # 指差しサイン
                     point_history.append(landmark_list[8])  # 人差指座標
@@ -188,50 +188,58 @@ def main():
                 )
             if len(results.multi_hand_landmarks)==2:
                 
-
-                if results.multi_handedness[0].classification[0].label[0:] == "Left":
+                l, r = -1, -1
+                if results.multi_handedness[0].classification[0].index == 0:
                     l = 0
-                else:
+                elif results.multi_handedness[1].classification[0].index == 0:
                     l = 1
 
-                hand_landmarks_0 = results.multi_hand_landmarks[l]
-                hand_landmarks_1 = results.multi_hand_landmarks[1-l]
-                
-                hand_landmarks_0, hand_landmarks_1 = normalize_two_landmark(hand_landmarks_0, hand_landmarks_1)
-
-                handedness_0 = results.multi_handedness[l]
-                handedness_1 = results.multi_handedness[1-l]
-
-
-                landmark_list_0 = landmark_to_list(hand_landmarks_0)
-                landmark_list_1 = landmark_to_list(hand_landmarks_1)
-
-                pre_processed_landmark_list = pre_process_landmark(landmark_list_0+landmark_list_1)
-
-                logging_csv_two_hands(number, mode, pre_processed_landmark_list)
-
-                
-                two_hands_hand_sign_id, two_hands_hand_sign_id_estim = two_hands_keypoint_classifier(pre_processed_landmark_list)
-                #print(two_hands_hand_sign_id_estim)
-                
-                if two_hands_hand_sign_id_estim[two_hands_hand_sign_id] <= 0.999:
-                    two_hands_hand_sign_id = 0
+                if results.multi_handedness[0].classification[0].index == 1:
+                    r = 0
+                elif results.multi_handedness[1].classification[0].index == 1:
+                    r = 1
                 
                 
-                hands_sign_history.append(two_hands_hand_sign_id)
-                most_common_hd_id = Counter(hands_sign_history).most_common()
-                if most_common_hd_id[0][0] != 0 and most_common_hd_id[0][0] != previous_hands_sign:
+                if r == l or l == -1 or r == -1:
+                    pass
+                else:
 
-                    previous_hands_sign = most_common_hd_id[0][0]
+                    hand_landmarks_0 = results.multi_hand_landmarks[l]
+                    hand_landmarks_1 = results.multi_hand_landmarks[r]
                     
-                    if mode_game == 0:
+                    hand_landmarks_0, hand_landmarks_1 = normalize_two_landmark(hand_landmarks_0, hand_landmarks_1)
 
-                        if two_hands_keypoint_classifier_labels[most_common_hd_id[0][0]] == "Hajime":
+                    handedness_0 = results.multi_handedness[l]
+                    handedness_1 = results.multi_handedness[r]
+
+                    landmark_list_0 = landmark_to_list(hand_landmarks_0)
+                    landmark_list_1 = landmark_to_list(hand_landmarks_1)
+
+                    pre_processed_landmark_list = pre_process_landmark(landmark_list_0+landmark_list_1)
+
+                    logging_csv_two_hands(number, mode, pre_processed_landmark_list)
+
+                    
+                    two_hands_hand_sign_id, two_hands_hand_sign_id_estim = two_hands_keypoint_classifier(pre_processed_landmark_list)
+                    #print(two_hands_hand_sign_id_estim)
+                    
+                    if two_hands_hand_sign_id_estim[two_hands_hand_sign_id] <= 0.999:
+                        two_hands_hand_sign_id = 0
+                    
+                    
+                    hands_sign_history.append(two_hands_hand_sign_id)
+                    most_common_hd_id = Counter(hands_sign_history).most_common()
+
+                    if most_common_hd_id[0][0] != 0 and most_common_hd_id[0][0] != previous_hands_sign:
+
+                        previous_hands_sign = most_common_hd_id[0][0]
+                        
+                        if mode_game == 0 and two_hands_keypoint_classifier_labels[most_common_hd_id[0][0]] == "Hajime":
                             print("Debut du combo")
                             mode_game = 1
                             timer_combo = time.time() + 5
-                    
-                    print(two_hands_keypoint_classifier_labels[most_common_hd_id[0][0]])
+                        
+                        print(two_hands_keypoint_classifier_labels[most_common_hd_id[0][0]])
 
                 if mode_game == 1 and timer_combo - time.time()  <= 0:
                     print("Fin du combo")
