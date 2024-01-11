@@ -155,10 +155,10 @@ def main():
 
                 # ハンドサイン分類
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                if hand_sign_id == 0:
+                if hand_sign_id == 0: #Calcul angle de la main si main ouverte
                     angle = np.arccos((landmark_list[8][0]-landmark_list[0][0]) / np.sqrt((landmark_list[0][0]-landmark_list[8][0])**2 + (landmark_list[0][1]-landmark_list[8][1])**2))
-                    
                     #print(np.round(90 - 180*angle/np.pi))
+
                 if hand_sign_id == 2:  # 指差しサイン
                     point_history.append(landmark_list[8])  # 人差指座標
                 else:
@@ -202,19 +202,22 @@ def main():
                 handedness_0 = results.multi_handedness[l]
                 handedness_1 = results.multi_handedness[1-l]
 
-                landmark_list_0 = calc_landmark_list(debug_image, hand_landmarks_0)
-                landmark_list_1 = calc_landmark_list(debug_image, hand_landmarks_1)
 
-                
-                #pre_processed_landmark_list = pre_process_two_hands_landmark(landmark_list_0, landmark_list_1)
+                landmark_list_0 = landmark_to_list(hand_landmarks_0)
+                landmark_list_1 = landmark_to_list(hand_landmarks_1)
+
                 pre_processed_landmark_list = pre_process_landmark(landmark_list_0+landmark_list_1)
-
 
                 logging_csv_two_hands(number, mode, pre_processed_landmark_list)
 
                 
-                two_hands_hand_sign_id = two_hands_keypoint_classifier(pre_processed_landmark_list)
-
+                two_hands_hand_sign_id, two_hands_hand_sign_id_estim = two_hands_keypoint_classifier(pre_processed_landmark_list)
+                #print(two_hands_hand_sign_id_estim)
+                
+                if two_hands_hand_sign_id_estim[two_hands_hand_sign_id] <= 0.999:
+                    two_hands_hand_sign_id = 0
+                
+                
                 hands_sign_history.append(two_hands_hand_sign_id)
                 most_common_hd_id = Counter(hands_sign_history).most_common()
                 if most_common_hd_id[0][0] != 0 and most_common_hd_id[0][0] != previous_hands_sign:
@@ -233,7 +236,8 @@ def main():
                 if mode_game == 1 and timer_combo - time.time()  <= 0:
                     print("Fin du combo")
                     mode_game = 0
-
+                
+                
         else:
             point_history.append([0, 0])
 
@@ -288,8 +292,8 @@ def landmark_distance(landmark, ind_1, ind_2):
     -landmark[ind_2].y)**2 + (landmark[ind_1].z
     -landmark[ind_2].z)**2)
 
-def normalize_landmark(landmarks):
-
+def normalize_landmark(lm):
+    landmarks = copy.deepcopy(lm) 
     #Calcul distance base paume/bout majeur
     d = landmark_distance(landmarks.landmark, 0, 9) + landmark_distance(landmarks.landmark, 9, 10) + landmark_distance(landmarks.landmark, 10, 11) + landmark_distance(landmarks.landmark, 11, 12)
 
@@ -318,6 +322,18 @@ def calc_landmark_list(image, landmarks):
 
     return landmark_point
 
+def landmark_to_list(landmarks):
+
+    landmark_point = []
+
+    for _, landmark in enumerate(landmarks.landmark):
+        landmark_x = landmark.x
+        landmark_y = landmark.y
+        # landmark_z = landmark.z
+
+        landmark_point.append([landmark_x, landmark_y])
+
+    return landmark_point
 
 def pre_process_landmark(landmark_list):
     temp_landmark_list = copy.deepcopy(landmark_list)
@@ -348,7 +364,7 @@ def normalize_two_landmark(landmarks_0, landmarks_1):
 
     #Calcul distance base paume/bout majeur
     d = landmark_distance(landmarks_0.landmark, 0, 9) + landmark_distance(landmarks_0.landmark, 9, 10) + landmark_distance(landmarks_0.landmark, 10, 11) + landmark_distance(landmarks_0.landmark, 11, 12)
-
+    base_x, base_y = 0, 0
     for index, landmark in enumerate(landmarks_0.landmark):
         if index == 0:
             base_x = landmark.x
