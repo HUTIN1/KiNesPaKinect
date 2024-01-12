@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import tensorflow as tf
+import os
 
 
 class KeyPointClassifier(object):
     def __init__(
         self,
-        model_path='keypoint_classifier.tflite',
+        model_path=os.path.join(os.path.dirname(os.path.realpath(__file__)),'model\keypoint_classifier.tflite'),
         num_threads=1,
     ):
         self.interpreter = tf.lite.Interpreter(model_path=model_path,
@@ -34,3 +35,12 @@ class KeyPointClassifier(object):
         result_index = np.argmax(np.squeeze(result))
 
         return result_index
+
+
+
+
+
+if __name__ == "__main__":
+    a = KeyPointClassifier()
+    b = np.random.rand(1,42).tolist()
+    a(b)
