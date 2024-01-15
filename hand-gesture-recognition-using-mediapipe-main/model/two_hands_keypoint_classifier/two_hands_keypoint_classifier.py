@@ -7,7 +7,7 @@ import tensorflow as tf
 class TwoHandsKeyPointClassifier(object):
     def __init__(
         self,
-        model_path='model/two_hands_keypoint_classifier/two_hands_keypoint_classifier.tflite',
+        model_path='model/two_hands_keypoint_classifier/two_hands_keypoint_classifier_video.tflite',
         num_threads=1,
     ):
         self.interpreter = tf.lite.Interpreter(model_path=model_path,
