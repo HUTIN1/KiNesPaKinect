@@ -6,13 +6,17 @@ import os
 
 import Connection
 import keypoint_classifier
+import Combo
+# import two_hand_classifier
 
 class Initialiszation:
     def __init__(self) -> None:
         self.args = self.get_args()
         self.init_path = os.path.dirname(os.path.realpath(__file__))
         self.path_classifier_one_hand = os.path.join(self.init_path,"label","keypoint_classifier_label.csv")
+        self.path_classifier_two_hand = os.path.join(self.init_path,"label","two_hands_keypoint_classifier_label.csv")
         self.path_model_one_hand = os.path.join(self.init_path,"model","keypoint_classifier.tflite")
+        self.path_model_two_hand = os.path.join(self.init_path,"model","two_hands_keypoint_classifier.tflite")
         self.UDP_IP = "127.0.0.1"
         self.UDP_PORT = 5065
 
@@ -33,15 +37,30 @@ class Initialiszation:
             min_detection_confidence=min_detection_confidence,
             min_tracking_confidence=min_tracking_confidence)
 
-        keypoint_classifier_labels = self._classifier_labels_one_hand()
+        keypoint_classifier_labels_one_hands = self._classifier_labels_hand(self.path_classifier_one_hand)
+        keypoint_classifier_labels_two_hands = self._classifier_labels_hand(self.path_classifier_two_hand)
+
+        combo = self._combo(keypoint_classifier_labels_two_hands)
 
         serveur = self._serveur()
 
         one_hand_classifier = self._nn_one_hand()
 
+        two_hand_classifier = self._nn_two_hands()
 
-        return cap, hands, keypoint_classifier_labels, serveur, one_hand_classifier
 
+        return (cap, 
+            hands, 
+            keypoint_classifier_labels_one_hands, 
+            serveur, 
+            one_hand_classifier, 
+            two_hand_classifier,
+            keypoint_classifier_labels_two_hands,
+            combo)
+
+    def _combo(self,keypoint_classifier_labels_two_hands):
+        combo = Combo.Combo(keypoint_classifier_labels_two_hands)
+        return combo
 
     def _serveur(self):
         serveur = Connection.Connection(self.UDP_IP,self.UDP_PORT)
@@ -50,31 +69,34 @@ class Initialiszation:
     def _nn_one_hand(self):      
         return keypoint_classifier.KeyPointClassifier(model_path=self.path_model_one_hand)
     
+    def _nn_two_hands(self):
+        return keypoint_classifier.KeyPointClassifier(model_path=self.path_model_two_hand)
+
     def _camera(self,cap_device,cap_height,cap_width):
         # カメラ準備 ###############################################################
         cap = cv.VideoCapture(cap_device)
         cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
         cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
-
         return cap
     
     def _mediapide(self,use_static_image_mode,min_detection_confidence,min_tracking_confidence):
         mp_hands = mp.solutions.hands
         hands = mp_hands.Hands(
         static_image_mode=use_static_image_mode,
-        max_num_hands=1,
+        max_num_hands=2,
         min_detection_confidence=min_detection_confidence,
         min_tracking_confidence=min_tracking_confidence,
         )
         return hands
     
-    def _classifier_labels_one_hand(self):
-        with open(self.path_classifier_one_hand,
+    def _classifier_labels_hand(self,path_csv):
+        with open(path_csv,
             encoding='utf-8-sig') as f:
             keypoint_classifier_labels = csv.reader(f)
             keypoint_classifier_labels = [
             row[0] for row in keypoint_classifier_labels
             ]
+
         return keypoint_classifier_labels
 
     def get_args(self):
