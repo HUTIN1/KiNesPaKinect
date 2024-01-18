@@ -16,7 +16,7 @@ from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
 from model import TwoHandsKeyPointClassifier
-
+import Connection
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -48,6 +48,8 @@ def main():
     cap_width = args.width
     cap_height = args.height
 
+    serveur = Connection.Connection("127.0.0.1", 5065)
+
     use_static_image_mode = args.use_static_image_mode
     min_detection_confidence = args.min_detection_confidence
     min_tracking_confidence = args.min_tracking_confidence
@@ -58,6 +60,7 @@ def main():
     cap = cv.VideoCapture(cap_device)
     cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+    cap.set(cv.CAP_PROP_AUTO_EXPOSURE, 1)
 
     # モデルロード #############################################################
     mp_hands = mp.solutions.hands
@@ -109,7 +112,9 @@ def main():
     mode = 0
     mode_game = 0
     timer_combo = 0
-    left_hand_hand_sign = 1 
+    left_hand_hand_sign = 1
+    norme_index = 0
+    landmark_katana = [6, 8] #Id landmark orientation katana
 
     while True:
         fps = cvFpsCalc.get()
@@ -145,7 +150,7 @@ def main():
                     hand_0 = handedness.classification[0].index
                 elif hand_0 == handedness.classification[0].index:
                     break
-                    
+
                 # 外接矩形の計算
                 brect = calc_bounding_rect(debug_image, hand_landmarks)
                 # ランドマークの計算
@@ -157,9 +162,6 @@ def main():
                     pre_processed_landmark_list)
                 pre_processed_point_history_list = pre_process_point_history(
                     debug_image, point_history)
-                # 学習データ保存
-                logging_csv(number, mode, pre_processed_landmark_list,
-                            pre_processed_point_history_list)
 
                 # ハンドサイン分類
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
@@ -169,8 +171,20 @@ def main():
 
                         if hand_sign_id == 0: #Calcul de l'angle si main ouverte
                             angle = np.arccos((landmark_list[8][0]-landmark_list[0][0]) / np.sqrt((landmark_list[0][0]-landmark_list[8][0])**2 + (landmark_list[0][1]-landmark_list[8][1])**2))
-                            print(np.round(90 - 180*angle/np.pi))
-                        
+                            print(np.round(90 - 180*angle/np.pi), end="\r")
+                        if hand_sign_id == 3: #Mise a jour de la norme pour calcul profondeur du katana
+                            norme_index = landmark_distance_2d(hand_landmarks.landmark, landmark_katana[0], landmark_katana[1])
+
+                        if hand_sign_id != -1: #Cacul et envoie de la position de la main et de l'orientation de l'index 
+
+                            #P: Position de la main (base majeur) dans l'image
+                            #V: Vecteur directeur de la lame du katana
+                            P, V = info_katana(hand_landmarks, norme_index, landmark_katana)
+                            message = {'V': V, 'P': P}
+                
+                            serveur({**message})
+                            
+                            
 
                     if handedness.classification[0].index == 0: #Main gauche
                         if hand_sign_id != left_hand_hand_sign: #Si on a une nouvelle position
@@ -262,9 +276,9 @@ def main():
                         
                         print(two_hands_keypoint_classifier_labels[most_common_hd_id[0][0]])
 
-                if mode_game == 1 and timer_combo - time.time()  <= 0:
-                    print("Fin du combo")
-                    mode_game = 0
+            if mode_game == 1 and timer_combo - time.time()  <= 0:
+                print("Fin du combo")
+                mode_game = 0
                 
                 
         else:
@@ -282,6 +296,34 @@ def main():
     cap.release()
     cv.destroyAllWindows()
 
+
+
+def info_katana(lm, norme_index, landmark_katana = [6,8]):
+
+    #6-8 -> Index; 17-5 -> Premieres phalanges
+    ind_1, ind_2 = landmark_katana
+    #Position a la base du majeur
+    P = [lm.landmark[9].x-0.5, 0.5-lm.landmark[9].y]
+
+    v = np.zeros(3)
+    v[0] = lm.landmark[ind_1].x - lm.landmark[ind_2].x
+    v[1] = lm.landmark[ind_1].y - lm.landmark[ind_2].y 
+
+    dv = np.linalg.norm(v) #Norme sur l'ecran
+
+    if (norme_index**2 - dv**2) < 0:
+        dz = 0
+    else:
+        dz = np.sqrt(1.5*norme_index**2 - dv**2)
+    
+
+    v[2] = dz
+    v = v / np.linalg.norm(v)
+
+    V = v.tolist()
+    V[0] *= -1
+
+    return P, V
 
 def select_mode(key, mode):
     number = -1
@@ -320,6 +362,11 @@ def landmark_distance(landmark, ind_1, ind_2):
     -landmark[ind_2].x)**2 + (landmark[ind_1].y
     -landmark[ind_2].y)**2 + (landmark[ind_1].z
     -landmark[ind_2].z)**2)
+
+def landmark_distance_2d(landmark, ind_1, ind_2):
+    return np.sqrt((landmark[ind_1].x
+    -landmark[ind_2].x)**2 + (landmark[ind_1].y
+    -landmark[ind_2].y)**2)
 
 def normalize_landmark(lm):
     landmarks = copy.deepcopy(lm) 
@@ -556,9 +603,9 @@ def draw_landmarks(image, landmark_point):
                 (0, 0, 0), 6)
         cv.line(image, tuple(landmark_point[1]), tuple(landmark_point[2]),
                 (255, 255, 255), 2)
-        cv.line(image, tuple(landmark_point[2]), tuple(landmark_point[5]),
+        cv.line(image, tuple(landmark_point[0]), tuple(landmark_point[5]),
                 (0, 0, 0), 6)
-        cv.line(image, tuple(landmark_point[2]), tuple(landmark_point[5]),
+        cv.line(image, tuple(landmark_point[0]), tuple(landmark_point[5]),
                 (255, 255, 255), 2)
         cv.line(image, tuple(landmark_point[5]), tuple(landmark_point[9]),
                 (0, 0, 0), 6)
