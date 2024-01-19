@@ -30,8 +30,6 @@ public class EnemyManager : MonoBehaviour
 
     public LayerMask whatIsGround;
 
-    public NavMeshAgent agent;
-
 
 
     void Start()
@@ -44,7 +42,6 @@ public class EnemyManager : MonoBehaviour
         myRigidBody=GetComponent<Rigidbody>();
         player = FindObjectOfType<PlayerMovement>();
         //player_transform = player.transform;
-        agent.speed = moveSpeed;
         
     }
 
