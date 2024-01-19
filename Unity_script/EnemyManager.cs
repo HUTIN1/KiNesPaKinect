@@ -60,12 +60,10 @@ public class EnemyManager : MonoBehaviour
 /*        Debug.Log("in sight range : " + playerInSightRange);
 */        if (playerInSightRange)
         {
-            Debug.Log("Chase Player");
             ChasePlayer();
         }
         else
         {
-            Debug.Log("Patroling");
             Patroling();  
         }
 
