@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameOver : MonoBehaviour
 {
    // Start is called before the first frame update
-    public GameObject GameOverActive;
+    
     public GameObject player;    
     void Start()
     {
@@ -16,7 +17,7 @@ public class GameOver : MonoBehaviour
     void Update()
     {
         if(!player.activeSelf){
-        GameOverActive.SetActive(true);
+        SceneManager.LoadScene("GameOver");
         }
     }
 }
