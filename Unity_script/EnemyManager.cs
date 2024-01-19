@@ -36,7 +36,6 @@ public class EnemyManager : MonoBehaviour
     {
         //Health
         currentHealth = health;
-        agent = GetComponent<NavMeshAgent>();
         
         //Ennemy Mouvement
         myRigidBody=GetComponent<Rigidbody>();
