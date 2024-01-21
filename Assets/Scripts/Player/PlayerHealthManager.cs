@@ -13,9 +13,9 @@ public class PlayerHealthManager : MonoBehaviour
         private Renderer renderer;
         private Color color;
 
+        public HealthBar healthBar;
 
-        public Image lifeBar;
-        private float calculateHealth;
+
     
 
         
@@ -25,13 +25,14 @@ public class PlayerHealthManager : MonoBehaviour
         currentHealth = health;
         renderer = GetComponent<Renderer>();
         color = renderer.material.GetColor("_Color");
+        healthBar.SetMaxHealth(health);
+        
     }
 
     // Update is called once per frame
     void Update()
     {
-        calculateHealth = currentHealth/ health;
-        lifeBar.fillAmount = Mathf.MoveTowards(lifeBar.fillAmount, calculateHealth, Time.deltaTime);
+        
 
         if(currentHealth <= 0)
         {
@@ -53,6 +54,7 @@ public class PlayerHealthManager : MonoBehaviour
         currentHealth -= damage;
         flashCounter = flashLength;
         renderer.material.SetColor("_Color",Color.red);
+        healthBar.SetHealth(currentHealth);
     }
 
     void OnCollisionEnter(Collision  other){

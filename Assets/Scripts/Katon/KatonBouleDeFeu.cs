@@ -17,8 +17,24 @@ public class KatonBouleDeFeu : MonoBehaviour
     }
 
      void OnCollisionEnter (Collision other){
-         if(other.gameObject.tag == "Enemy"){
-             other.gameObject.GetComponent<EnemyManager>().EnemyHealthUpdate(FireBallDamage);
+         if(other.gameObject.tag == "Ghost"){
+             other.gameObject.GetComponent<Ghost>().EnemyHealthUpdate(FireBallDamage);
+             Destroy(gameObject);
+         }
+
+        if(other.gameObject.tag == "Mummy"){
+             other.gameObject.GetComponent<Mummy>().EnemyHealthUpdate(FireBallDamage);
+             Destroy(gameObject);
+         }
+
+         if(other.gameObject.tag == "MummyBoss"){
+             other.gameObject.GetComponent<MummyBoss>().EnemyHealthUpdate(FireBallDamage);
+             Destroy(gameObject);
+         }
+
+
+         if(other.gameObject.tag == "GhostBoss"){
+             other.gameObject.GetComponent<GhostBoss>().EnemyHealthUpdate(FireBallDamage);
              Destroy(gameObject);
          }
          if(other.gameObject.tag == "Wall"){
