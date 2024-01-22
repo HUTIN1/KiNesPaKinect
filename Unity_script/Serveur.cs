@@ -17,6 +17,10 @@ public class Calibration
     public float Angle;
     public bool Katone;
     public bool Forward;
+    public string Right_Hand;
+    public string Left_Hand;
+    public string Two_Hand;
+    public bool Mode_Combo;
     public static Calibration CreateFromJSON(string jsonString)
     {
         return JsonUtility.FromJson<Calibration>(jsonString);
@@ -70,6 +74,14 @@ public class Serveur : MonoBehaviour
     public float getC()
     {
         return cal.C;
+    }
+
+    public string PrintAll()
+    {
+        string text = "Jump : " + cal.Jump + "\n Angle : " + cal.Angle + " \n Katone : " + cal.Katone 
+            + "\n Forward : " + cal.Forward + "\n Right Hand : " + cal.Right_Hand + "\n Left Hand : " + cal.Left_Hand 
+            + "\n Two Hand : " + cal.Two_Hand + "\n Mode Combo : " + cal.Mode_Combo;
+        return text;
     }
 
 

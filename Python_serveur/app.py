@@ -21,7 +21,9 @@ def main():
      combo) = Init()
     
     mode_game = 0
-    left_hand_hand_sign = -1
+    left_hand_sign_id = -1
+    right_hand_sign_id = -1
+    left_hand_sign_jump = -1
     two_hands_hand_sign_id = 0
 
     
@@ -62,6 +64,7 @@ def main():
 
                 if mode_game == 0 :
                     if handedness.classification[0].index == 0: #Main gauche
+                        right_hand_sign_id = hand_sign_id
                         if hand_sign_id == 0: #Calcul de l'angle si main ouverte et avance
                             forward = True
                             angle = utils.angle_hand(landmark_list)
@@ -69,10 +72,11 @@ def main():
                             angle = utils.angle_hand(landmark_list)
 
                     elif handedness.classification[0].index == 1: #Main droite
-                        if hand_sign_id != left_hand_hand_sign: #Si on a une nouvelle position
-                            left_hand_hand_sign = hand_sign_id
+                        left_hand_sign_id = hand_sign_id
+                        if hand_sign_id != left_hand_sign_jump: #Si on a une nouvelle position
+                            left_hand_sign_jump = hand_sign_id
                             jump = False
-                            if left_hand_hand_sign == 0: #Main ouverte: Saut
+                            if left_hand_sign_jump == 0: #Main ouverte: Saut
                                 jump = True
 
                 hands2 , idxright, idxleft = utils.is2Hands(results)
@@ -99,7 +103,13 @@ def main():
                 
                 # print(f"sign : {keypoint_classifier_labels_one_hand[hand_sign_id]}, hand sign id : {hand_sign_id}")
 
-                message = {'C': float(hand_sign_id), "Jump":jump,"Angle":angle,"Forward":forward}
+                message = {'C': float(hand_sign_id), "Jump":jump,
+                           "Angle":angle,
+                           "Forward":forward,
+                           "Left_Hand":keypoint_classifier_labels_one_hand[left_hand_sign_id],
+                           "Right_Hand":keypoint_classifier_labels_one_hand[right_hand_sign_id],
+                           "Two_Hand":keypoint_classifier_labels_two_hand[two_hands_hand_sign_id],
+                           "Mode_Combo":mode_game == 1}
                 message = {**message,**results_combo}
 
                 print(message)

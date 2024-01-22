@@ -30,6 +30,9 @@ public class EnemyManager : MonoBehaviour
 
     public LayerMask whatIsGround;
 
+    public bool isSight;
+    public bool isChase;
+
 
 
     void Start()
@@ -57,13 +60,30 @@ public class EnemyManager : MonoBehaviour
         
         //transform.LookAt(player.transform.position);
         playerInSightRange = Physics.CheckSphere(transform.position, sightRange, WhatisPlayer);
-/*        Debug.Log("in sight range : " + playerInSightRange);
-*/        if (playerInSightRange)
+
+        bool raytouch = Physics.Raycast(transform.position, transform.forward, 200f, WhatisPlayer);
+        Debug.Log("ray touch : " + raytouch);
+
+        /*        Debug.Log("in sight range : " + playerInSightRange);
+        */
+        if (isSight)
         {
+            isChase = playerInSightRange;
+        } else
+        {
+            isChase = playerInSightRange && raytouch;
+        }
+
+          if (isChase)
+        {
+            isSight = true;
+            Debug.Log("Chase Player");
             ChasePlayer();
         }
         else
         {
+            isSight = false;
+            Debug.Log("Patroling");
             Patroling();  
         }
 
