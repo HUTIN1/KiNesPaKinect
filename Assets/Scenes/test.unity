@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
+  m_IndirectSpecularColor: {r: 0.120261975, g: 0.108706124, b: 0.20009667, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -523,7 +523,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3241475490991273688, guid: 75c306f0255b31049a13942ebda48b0f, type: 3}
       propertyPath: m_RootOrder
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3241475490991273688, guid: 75c306f0255b31049a13942ebda48b0f, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1310,10 +1310,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 650a073f2998ffb408bcbfc6bad4cc67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetPoints:
-  - {x: 0.32, y: 2.56, z: 105.66}
-  - {x: -33.6, y: 2.56, z: 105.66}
-  speed: 5
 --- !u!65 &1541976153
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1693,7 +1689,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 780452148420560152, guid: 073d681bde6d1df4eac65e8a68c1f1cc, type: 3}
       propertyPath: m_RootOrder
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 780452148420560152, guid: 073d681bde6d1df4eac65e8a68c1f1cc, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1772,9 +1768,13 @@ PrefabInstance:
       propertyPath: attackPoint
       value: 
       objectReference: {fileID: 1353834286}
+    - target: {fileID: 5272445146237780931, guid: 0e005e8af79d2974bb4e9ad7d6612f14, type: 3}
+      propertyPath: throwForceB
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: 5272445146237780954, guid: 0e005e8af79d2974bb4e9ad7d6612f14, type: 3}
       propertyPath: m_RootOrder
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5272445146237780954, guid: 0e005e8af79d2974bb4e9ad7d6612f14, type: 3}
       propertyPath: m_LocalPosition.x

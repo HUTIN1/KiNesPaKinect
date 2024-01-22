@@ -145,9 +145,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cam: {fileID: 0}
   attackPoint: {fileID: 0}
-  objectToThrow: {fileID: 5308086905937901724, guid: 32f8d0b58767b274f8fc8a4b00cde8fb, type: 3}
+  objectToThrowA: {fileID: 5308086905937901724, guid: 32f8d0b58767b274f8fc8a4b00cde8fb, type: 3}
+  objectToThrowB: {fileID: 1245360488091752, guid: 31be0311b4b6d0847a48bdcef8ae6b58, type: 3}
   throwKey: 97
-  throwForce: 30
+  throwForceA: 30
+  throwKey1: 101
+  throwForceB: 40
 --- !u!136 &5272445146237780932
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -177,6 +180,7 @@ MonoBehaviour:
   health: 10
   flashLength: 0.2
   flashCounter: 0
+  healthBar: {fileID: 0}
 --- !u!1 &5272445146264295033
 GameObject:
   m_ObjectHideFlags: 0

@@ -2573,6 +2573,10 @@ PrefabInstance:
       propertyPath: attackPoint
       value: 
       objectReference: {fileID: 644673761}
+    - target: {fileID: 5272445146237780931, guid: 0e005e8af79d2974bb4e9ad7d6612f14, type: 3}
+      propertyPath: throwForceB
+      value: 30
+      objectReference: {fileID: 0}
     - target: {fileID: 5272445146237780932, guid: 0e005e8af79d2974bb4e9ad7d6612f14, type: 3}
       propertyPath: m_IsTrigger
       value: 0
