@@ -1,0 +1,12 @@
+#App.py
+opencv-python
+mediapipe
+tensorflow
+
+#Training
+notebook
+scikit-learn
+pandas
+seaborn
+matplotlib
+
